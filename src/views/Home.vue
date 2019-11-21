@@ -28,6 +28,7 @@ export default {
   beforeCreate() {},
   created() {},
   mounted() {
+    console.log("Home", this);
     const vnode = h(
       // tag
       "div",
@@ -51,8 +52,7 @@ export default {
         h(Portal, { target: "#float" }, h("span", {}, "asdasd"))
       ])
     );
-    console.log(vnode);
-    render(vnode, document.getElementById("home"));
+    // render(vnode, document.getElementById("home"));
   },
   beforeUpdate() {},
   methods: {}

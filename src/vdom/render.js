@@ -151,14 +151,17 @@ function mountFragment(vnode, container, isSVG) {
   // 最主要的区别就是没有 tag，只需要挂载 children
   // **但是也因为没有 tag，所以 vnode.el 处理方式也不同**
   // remember，**一个 el 需要被创建它的 vnode 引用**
+
+  // 拿 fragment 和普通组件举个栗子
+  // 组件只能有一个根节点，是其他所有子节点的容器
+  // 而 fragment 不要求有一个根节点，多个节点时是并列的，没有容器
+  // 没有容器，也就是 vnode 没有直接生成对应的 DOM 元素 el
+  // 但是为了保持层级关系，只能直接引用 children 渲染出来的 el 了
   const { children, childrenFlags } = vnode;
   switch (childrenFlags) {
     case SINGLE_VNODE:
       // 单个
-      // 下面的递归最终生成了由 children 这个 vnode 对应的真实 DOM 元素
-      // 并且通过 children.el 引用
       mount(children, container, isSVG);
-      // TODO:
       vnode.el = children.el;
       break;
     case NO_CHILDREN: {
@@ -233,13 +236,13 @@ function mountStatefulComponent(vnode, container, isSVG) {
   // IV. 引用 el
   // 本着 **一个 el 需要被创建它的 vnode 引用** 的原则
   const el = $vnode.el;
-  // el 实际上是由 $vnode 生成的
-  // 但是 $vnode 是由 vnode 生成的
-  // p.s. 回顾一下这个 el
-  // 如果是 Fragment，
+  // 虽然 el 不是由 vnode 直接生成的
+  // 但是最终只生成了这么一个 el
+  // 所以就引用它了
   vnode.el = el;
 
-  // V. 把 $vnode 和 el 也添加到组件实例上，以后可能会用到
+  // V. 把 $vnode 和 el 也添加到组件实例上
+  // 也就是组件的 this.$vnode 和 this.$el 了
   instance.$vnode = $vnode;
   instance.$el = el;
 }
