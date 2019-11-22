@@ -216,6 +216,7 @@ function mountComponent(vnode, container, isSVG) {
 function mountStatefulComponent(vnode, container, isSVG) {
   // I. 创建组件实例
   // tag 是一个类的引用，相当于 new MyComponent()
+  // 而 instance 就是组件里的 this 了
   const instance = new vnode.tag();
 
   // II. 渲染 vnode
@@ -235,16 +236,21 @@ function mountStatefulComponent(vnode, container, isSVG) {
 
   // IV. 引用 el
   // 本着 **一个 el 需要被创建它的 vnode 引用** 的原则
-  const el = $vnode.el;
-  // 虽然 el 不是由 vnode 直接生成的
-  // 但是最终只生成了这么一个 el
+  const $el = $vnode.el;
+  // 虽然 $el 不是由 vnode 直接生成的
+  // 但是最终只生成了这么一个 $el
   // 所以就引用它了
-  vnode.el = el;
+  vnode.el = $el;
 
-  // V. 把 $vnode 和 el 也添加到组件实例上
+  // V. 把 $vnode 和 $el 也添加到组件实例上
   // 也就是组件的 this.$vnode 和 this.$el 了
   instance.$vnode = $vnode;
-  instance.$el = el;
+  instance.$el = $el;
+
+  // 打印一下看看 🤪
+  console.log(vnode);
+  console.log($vnode);
+  console.log(instance);
 }
 // 函数式组件
 function mountFunctionalComponent(vnode, container, isSVG) {}

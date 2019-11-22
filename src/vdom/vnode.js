@@ -42,7 +42,7 @@ function h(tag, data = null, children = null) {
     } else if (typeof tag === "function") {
       // Vue3 类组件
       flags =
-        tag.prototype && tag.prorotypebundleRenderer.render
+        tag.prototype && tag.prototype.render
           ? COMPONENT_STATEFUL_NORMAL // 有状态组件
           : COMPONENT_FUNCTIONAL; // 函数式组件
     }

@@ -23,7 +23,7 @@ export default {
   beforeCreate() {},
   created() {},
   mounted() {
-    console.log("App", this);
+    // console.log("App", this);
   },
   beforeUpdate() {},
   methods: {}
