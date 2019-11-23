@@ -25,6 +25,6 @@ DOM 的属性：
 
 ## VNode
 
-一个真实的 DOM 元素，或者说 `el`，始终要被创建该元素的 `vnode` 引用。
+执行 `mount()` 的过程中，`vnode` 一定要引用由它创建的真实 DOM 元素。因为之后执行 `patch()` 时不会重复渲染，需要继续在这个 DOM 元素上操作。
 
-`vnodes` 之间通过 `children` 表明层级关系，DOM 元素通过标签嵌套表明层级关系，`vnode` 和对应的 DOM 元素通过 `el` 属性连接。
+`vnodes` 之间通过 `children` 表明层级关系，DOM 元素通过标签嵌套表明层级关系。

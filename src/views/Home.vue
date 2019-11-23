@@ -33,10 +33,15 @@ export default {
 
     // this.mountHTML();
     // this.mounteFragment();
-    this.mountStatefulComponent();
+    // this.mountStatefulComponent();
+    // this.mountFunctionalComponent();
+
+    // this.patchReplace();
+    this.patchStyle();
   },
   beforeUpdate() {},
   methods: {
+    // mount
     mountHTML() {
       const vnode = h(
         "div",
@@ -58,6 +63,8 @@ export default {
           h("span", {}, "span标签")
         ]
       );
+      render(vnode, document.getElementById("home"));
+      // patch
       render(vnode, document.getElementById("home"));
     },
     mounteFragment() {
@@ -85,7 +92,9 @@ export default {
       );
       render(vnode, document.getElementById("home"));
     },
-    mountPortal() {},
+    mountPortal() {
+      // .
+    },
     mountStatefulComponent() {
       class MyComponent extends Component {
         render() {
@@ -104,7 +113,46 @@ export default {
       const componentVNode = h(MyComponent);
       render(componentVNode, document.getElementById("home"));
     },
-    mountFunctionalComponent() {}
+    mountFunctionalComponent() {
+      const functionalComponent = () => {
+        return h("div", {}, [h("p", {}, "div/p"), h("span", {}, "div/span")]);
+      };
+      const functionalComponentVNode = h(functionalComponent);
+      render(functionalComponentVNode, document.getElementById("home"));
+    },
+    // patch
+    patchReplace() {
+      const app = document.getElementById("home");
+
+      const prevVNode = h("div", {}, "previous vnode");
+
+      const functionalComponent = () => h("h1", {}, "next vnode");
+      const nextVNode = functionalComponent();
+
+      render(prevVNode, app);
+      render(nextVNode, app);
+    },
+    patchStyle() {
+      const app = document.getElementById("home");
+
+      const prevVNode = h(
+        "div",
+        { style: { color: "red", backgroundColor: "green", fontSize: "20px" } },
+        "previous vnode"
+      );
+      const nextVNode = h(
+        "div",
+        {
+          style: { backgroundColor: "blue", fontSize: "12px", padding: "20px" }
+        },
+        "previous vnode"
+      );
+
+      render(prevVNode, app);
+      setTimeout(() => {
+        render(nextVNode, app);
+      }, 2000);
+    }
   }
 };
 </script>
