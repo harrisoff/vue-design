@@ -5,14 +5,13 @@ const {
   PORTAL,
   ELEMENT,
   COMPONENT,
-  COMPONENT_STATEFUL_NORMAL,
+  // COMPONENT_STATEFUL_NORMAL,
   COMPONENT_FUNCTIONAL,
   ELEMENT_SVG
 } = VNodeFlags;
 const { NO_CHILDREN, SINGLE_VNODE, MULTIPLE_VNODES } = ChildrenFlags;
 
-// 不能通过 setAttribute() 设置的 dom 属性
-const domPropsRE = /\[A-Z]|^(?:value|checked|selected|muted)$/;
+import { patchData } from "./utils";
 
 // 挂载
 // I. 使用 vnode 提供的数据创建真实的 DOM 元素
@@ -52,42 +51,17 @@ function mountElement(vnode, container, isSVG) {
     : document.createElement(tag);
 
   // II. 引用真实的 DOM element
+  // 因为渲染只会执行一次，后续修改是基于第一次渲染生成的 DOM 元素的
+  // 所以在渲染之后需要保存这个 DOM 元素的引用
   vnode.el = el;
 
   // III. 应用 vnode date
-  Object.keys(data).forEach(key => {
+  for (const key in data) {
     const val = data[key];
-    switch (key) {
-      case "style":
-        Object.keys(val).forEach(styleKey => {
-          el.style[styleKey] = val[styleKey];
-        });
-        break;
-      case "class": {
-        // 1. 普通字符串
-        // 2. 数组
-        // 3. 对象
-        const classString = formatClass(val);
-        if (isSVG) {
-          el.setAttribute("class", classString);
-        } else {
-          el.className = classString; // val 是 class 字符串
-        }
-        break;
-      }
-      default:
-        if (key[0] === "o" && key[1] === "n") {
-          // 前两字母为 on 的判定为事件处理函数
-          el.addEventListener(key.slice(2), val);
-        } else if (domPropsRE.test(key)) {
-          // 不能通过 setAttribute() 修改的属性
-          el[key] = val;
-        } else {
-          el.setAttribute(key, val);
-        }
-        break;
-    }
-  });
+    // 根据 vnodeData 的 key 采取不同的处理
+    // 虽然叫 patchX()，实际只是封装了 switch 语句，mount() 和 patch() 都会用到
+    patchData(el, key, null, val, isSVG);
+  }
 
   // IV. 挂载 children
   if (childrenFlags & NO_CHILDREN) {
@@ -241,32 +215,4 @@ function mountFunctionalComponent(vnode, container, isSVG) {
 
   console.log(vnode);
   console.log($vnode);
-}
-
-// utils
-
-// string/array/object 类型的 class 转为 string
-function formatClass(rawClass) {
-  let classString;
-  if (typeof rawClass === "string") {
-    classString = rawClass;
-  } else if (Array.isArray(rawClass)) {
-    classString = rawClass
-      .toString()
-      .split(",")
-      .join(" ");
-  } else {
-    // TODO: 判断 object 类型更完善的逻辑
-    const isObject = rawClass && typeof rawClass === "object";
-    if (isObject) {
-      const trueClasses = Object.keys(rawClass).filter(className => {
-        return rawClass[className];
-      });
-      classString = trueClasses
-        .toString()
-        .split(",")
-        .join(" ");
-    }
-  }
-  return classString;
 }

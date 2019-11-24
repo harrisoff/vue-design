@@ -1,5 +1,6 @@
 import { mount } from "./mount";
 import { patch } from "./patch";
+import { remove } from "./utils";
 
 // 渲染函数入口
 function render(vnode, container) {
@@ -22,12 +23,6 @@ function render(vnode, container) {
       container.vnode = null;
     }
   }
-}
-
-// 删除
-function remove(vnode, container) {
-  // 浏览器环境
-  container.removeChild(vnode.el);
 }
 
 export { render };

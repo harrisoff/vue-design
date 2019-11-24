@@ -7,6 +7,9 @@ null == undefined
 
 Eslint 的 `no-case-declarations` 规则，[一般的 switch 写法没有块级作用域](https://segmentfault.com/q/1010000012751143/a-1020000012751604)
 
+曾经我天真地以为 `Object.keys()` 是万能的，没想到还是 `for in` 更方便。   
+当迭代对象为 `null` 的时候，`Object.keys()` 会报错，而 `for in` 不会。
+
 ## DOM Basic
 
 DOM 的属性：

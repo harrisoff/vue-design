@@ -32,70 +32,77 @@ export default {
     // console.log("Home", this);
 
     // this.mountHTML();
-    // this.mounteFragment();
+    // this.mountFragment();
     // this.mountStatefulComponent();
     // this.mountFunctionalComponent();
 
     // this.patchReplace();
-    this.patchStyle();
+    this.patchEvent();
   },
   beforeUpdate() {},
   methods: {
     // mount
     mountHTML() {
-      const vnode = h(
-        "div",
-        {
-          style: {
-            width: "120px",
-            height: "20px",
-            backgroundColor: "silver"
-          },
-          // class: "class-a class-b"
-          // class: ["class-a", "class-b"]
-          class: { "class-a": true, "class-b": false },
-          onclick(e) {
-            console.log(e);
-          }
+      // I. 原始数据
+      const tag = "div";
+      const data = {
+        style: {
+          width: "120px",
+          height: "20px",
+          backgroundColor: "silver"
         },
-        [
-          h("p", { style: { backgroundColor: "aqua" } }, "p标签"),
-          h("span", {}, "span标签")
-        ]
-      );
+        // class: "class-a class-b"
+        // class: ["class-a", "class-b"]
+        class: { "class-a": true, "class-b": false },
+        onclick(e) {
+          console.log(e);
+        }
+      };
+      const children = [
+        h("p", { style: { backgroundColor: "aqua" } }, "p标签"),
+        h("span", {}, "span标签")
+      ];
+      // II. 格式化为 vnode
+      const vnode = h(tag, data, children);
+      // III. render，两种情况：
+      // i. mount，首次渲染
       render(vnode, document.getElementById("home"));
-      // patch
-      render(vnode, document.getElementById("home"));
+      // ii. patch，修改旧元素
+      setTimeout(() => {
+        render(vnode, document.getElementById("home"));
+      }, 2000);
     },
-    mounteFragment() {
-      const vnode = h(
-        "div",
-        {
-          style: {
-            width: "120px",
-            height: "20px",
-            backgroundColor: "silver"
-          },
-          // class: "class-a class-b"
-          // class: ["class-a", "class-b"]
-          class: { "class-a": true, "class-b": false },
-          onclick(e) {
-            console.log(e);
-          }
+    mountFragment() {
+      const tag = "div";
+      const data = {
+        style: {
+          width: "120px",
+          height: "20px",
+          backgroundColor: "silver"
         },
-        h(Fragment, {}, [
-          h("span", {}, "frag1"),
-          h("span", {}, "frag2"),
-          // FIXME: 界面上出现了一个 undefined
-          h(Portal, { target: "#float" }, h("span", {}, "asdasd"))
-        ])
-      );
+        // class: "class-a class-b"
+        // class: ["class-a", "class-b"]
+        class: { "class-a": true, "class-b": false },
+        onclick(e) {
+          console.log(e);
+        }
+      };
+      const children = h(Fragment, {}, [
+        h("span", {}, "frag1"),
+        h("span", {}, "frag2"),
+        // FIXME: 界面上出现了一个 undefined
+        h(Portal, { target: "#float" }, h("span", {}, "asdasd"))
+      ]);
+
+      const vnode = h(tag, data, children);
+
       render(vnode, document.getElementById("home"));
     },
     mountPortal() {
       // .
     },
     mountStatefulComponent() {
+      // 组件的话，原始数据就是组件类/函数
       class MyComponent extends Component {
         render() {
           return h(
@@ -110,7 +117,9 @@ export default {
           );
         }
       }
+      // 格式化为 vnode
       const componentVNode = h(MyComponent);
+      // 渲染
       render(componentVNode, document.getElementById("home"));
     },
     mountFunctionalComponent() {
@@ -130,29 +139,49 @@ export default {
       const nextVNode = functionalComponent();
 
       render(prevVNode, app);
-      render(nextVNode, app);
+      setTimeout(() => {
+        render(nextVNode, app);
+      }, 2000);
     },
-    patchStyle() {
+    patchEvent() {
       const app = document.getElementById("home");
 
       const prevVNode = h(
         "div",
-        { style: { color: "red", backgroundColor: "green", fontSize: "20px" } },
+        {
+          style: { color: "red", backgroundColor: "green", fontSize: "20px" },
+          // 删除的事件
+          onmouseover(e) {
+            console.log("previous mouseover");
+          },
+          // 修改的事件
+          onclick(e) {
+            console.log("previous click");
+          }
+        },
         "previous vnode"
       );
       const nextVNode = h(
         "div",
         {
-          style: { backgroundColor: "blue", fontSize: "12px", padding: "20px" }
+          style: { backgroundColor: "blue", fontSize: "12px", padding: "20px" },
+          onclick(e) {
+            console.log("next click");
+          },
+          // 新增的事件
+          onmouseleave(e) {
+            console.log("next mouseleave");
+          }
         },
-        "previous vnode"
+        "next vnode"
       );
 
       render(prevVNode, app);
       setTimeout(() => {
         render(nextVNode, app);
       }, 2000);
-    }
+    },
+    patchChildren() {}
   }
 };
 </script>
