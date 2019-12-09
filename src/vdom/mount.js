@@ -1,3 +1,4 @@
+import { createTextVNode } from "./vnode";
 import { VNodeFlags, ChildrenFlags } from "./vnode-types";
 const {
   TEXT,
@@ -21,6 +22,9 @@ import { patchData } from "./utils";
 // 即，在递归的最后，都调用了 mountElement() 或 mountText()
 export function mount(vnode, container, isSVG) {
   const { flags } = vnode;
+  // 看上去，下面几种情况是并列关系
+  // 但是从渲染步骤上说并不是
+  // 比如 statefulComponent 是有上下文 this 的
   if (flags & ELEMENT) {
     // I. HTML/svg
     mountElement(vnode, container, isSVG);
@@ -85,6 +89,7 @@ function mountElement(vnode, container, isSVG) {
 
 // 纯文本
 function mountText(vnode, container) {
+  // vnode === placeholder === ""
   const el = document.createTextNode(vnode.children);
   vnode.el = el;
   container.appendChild(el);
@@ -112,7 +117,7 @@ function mountFragment(vnode, container, isSVG) {
       // 无，创建一个空白文本节点占位
       // patch() 中移动元素时，需要节点的引用
       // 就算 Fragment 没有子节点，也需要一个占位的空文本节点
-      const placeholder = document.createTextNode("");
+      const placeholder = createTextVNode("");
       mountText(placeholder, container);
       vnode.el = placeholder.el;
       break;
@@ -137,15 +142,15 @@ function mountPortal(vnode, container) {
   if (childrenFlags & SINGLE_VNODE) {
     mount(children, target);
   } else if (childrenFlags & MULTIPLE_VNODES) {
-    children.forEach(child => {
+    for (const child in children) {
       mount(child, target);
-    });
+    }
   }
 
   // 虽然实际元素不在这个位置，但行为仍然与此处的元素一致
   // 比如事件捕获/冒泡等机制
   // 所以需要添加一个占位元素，vnode.el 也指向该占位元素
-  const placeholder = document.createTextNode("");
+  const placeholder = createTextVNode("");
   mountText(placeholder, container, false);
   vnode.el = placeholder.el;
 }

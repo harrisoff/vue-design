@@ -18,6 +18,11 @@ const Portal = Symbol();
 // I. 格式化 tag/children 的值
 // II. 生成 flags/childrenFlags
 // p.s. 文本节点一般不用 h() 函数生成，所以只在 children 部分判断文本节点的情况
+// +===================================================================
+// | 对于普通 HTML 元素来说，h() 生成的 VNode 确实就是对真实 DOM 的描述
+// | 但是对于组件来说，生成的 VNode **是一个中介**，并不是对 DOM 的直接描述
+// | 组件函数返回的另一个 VNode 才是真正用来描述 DOM 的，也是真正用来渲染的
+// +===================================================================
 function h(tag, data = null, children = null) {
   // 判断 tag 类型
   let flags = null;
@@ -95,12 +100,16 @@ function h(tag, data = null, children = null) {
   return vnode;
 }
 
+// 创建纯文本节点的 VNode
+// 这个 VNode 最终会交给 mountText() 渲染
 function createTextVNode(text) {
   return {
     _isVNode: true,
     flags: TEXT,
     tag: null,
     data: null,
+    // 把 children 设置为文本
+    // mountText() 渲染时取 children 属性为 document.createTextNode() 的参数
     children: text,
     childrenFlags: NO_CHILDREN,
     el: null
@@ -115,4 +124,4 @@ function normalizeVNodes(children) {
   });
 }
 
-export { h, Fragment, Portal };
+export { h, Fragment, Portal, createTextVNode };

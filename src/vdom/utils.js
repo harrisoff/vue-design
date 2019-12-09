@@ -30,14 +30,14 @@ export function formatElementClass(rawClass) {
 // I. mount() 和 patch() 都会用到
 // II.只是比较 vnodeData 里其中一项而已
 // 对于 patch() 的过程
+// TODO: 好像不对
 // I. 遍历新 vnodeData 时，prevValue 可能是空的，nextValue 一定有值
 // II. 遍历旧 vnodeData 时，prevValue 可能有值，nextValue 一定为空
 export function patchData(el, key, prevValue, nextValue, isSVG) {
-  // 添加新的 vnodeData
   switch (key) {
     case "style":
-      // 对于 patch() 的过程，不能只仅仅添加新的，达不到覆盖的效果
-      // 还需要把旧的删除
+      // 对于 patch() 的过程，跟 patchElement() 类似
+      // 先遍历新的 key，再遍历旧的有新的没的 key
       // +新
       for (const styleKey in nextValue) {
         el.style[styleKey] = nextValue[styleKey];
@@ -63,12 +63,12 @@ export function patchData(el, key, prevValue, nextValue, isSVG) {
       break;
     }
     default:
-      if (key[0] === "o" && key[1] === "n") {
-        // key 为 onX，前两字母为 on 的判定为事件处理函数
+      if (key.indexOf("on") === 0) {
+        // key 为 onxxx，前两字母为 on 的判定为事件处理函数
         // prevValue/nextValue 可能的情况：
-        // I. 新增回调，null/function
-        // II. 删掉了回调, function/null
-        // III. 修改回调，function/function
+        // I. 新增回调，null -> function
+        // II. 删掉了回调, function -> null
+        // III. 修改回调，function -> function
         // 不管哪种情况，只要有旧的就删掉，只要有新的就加上
         if (prevValue) {
           el.removeEventListener(key.slice(2), prevValue);

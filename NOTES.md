@@ -1,3 +1,6 @@
+## ATTENTION
+
+务必注意大小写。很多变量和常量名是类似的。
 
 ## JavaScript Basic
 

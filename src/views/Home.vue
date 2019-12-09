@@ -37,7 +37,8 @@ export default {
     // this.mountFunctionalComponent();
 
     // this.patchReplace();
-    this.patchEvent();
+    // this.patchEvent();
+    this.patchChildren();
   },
   beforeUpdate() {},
   methods: {
@@ -59,18 +60,15 @@ export default {
         }
       };
       const children = [
+        // FIXME: 不支持多个 children 里有纯文本节点
+        // "asdsadasdas",
         h("p", { style: { backgroundColor: "aqua" } }, "p标签"),
         h("span", {}, "span标签")
       ];
       // II. 格式化为 vnode
       const vnode = h(tag, data, children);
-      // III. render，两种情况：
-      // i. mount，首次渲染
+      // III. render
       render(vnode, document.getElementById("home"));
-      // ii. patch，修改旧元素
-      setTimeout(() => {
-        render(vnode, document.getElementById("home"));
-      }, 2000);
     },
     mountFragment() {
       const tag = "div";
@@ -87,11 +85,11 @@ export default {
           console.log(e);
         }
       };
+      const portal = h(Portal, { target: "#float" }, h("span", {}, "asdasd"));
       const children = h(Fragment, {}, [
         h("span", {}, "frag1"),
         h("span", {}, "frag2"),
-        // FIXME: 界面上出现了一个 undefined
-        h(Portal, { target: "#float" }, h("span", {}, "asdasd"))
+        portal
       ]);
 
       const vnode = h(tag, data, children);
@@ -103,29 +101,14 @@ export default {
     },
     mountStatefulComponent() {
       // 组件的话，原始数据就是组件类/函数
-      class MyComponent extends Component {
-        render() {
-          return h(
-            "div",
-            {
-              style: {
-                width: "100px",
-                height: "100px"
-              }
-            },
-            [h("span", {}, "component/div/span")]
-          );
-        }
-      }
+      const MyComponent = this.createStatefulComponent();
       // 格式化为 vnode
       const componentVNode = h(MyComponent);
       // 渲染
       render(componentVNode, document.getElementById("home"));
     },
     mountFunctionalComponent() {
-      const functionalComponent = () => {
-        return h("div", {}, [h("p", {}, "div/p"), h("span", {}, "div/span")]);
-      };
+      const functionalComponent = this.createFunctionalComponent();
       const functionalComponentVNode = h(functionalComponent);
       render(functionalComponentVNode, document.getElementById("home"));
     },
@@ -138,10 +121,7 @@ export default {
       const functionalComponent = () => h("h1", {}, "next vnode");
       const nextVNode = functionalComponent();
 
-      render(prevVNode, app);
-      setTimeout(() => {
-        render(nextVNode, app);
-      }, 2000);
+      this.renderTwice(prevVNode, nextVNode, app);
     },
     patchEvent() {
       const app = document.getElementById("home");
@@ -176,12 +156,160 @@ export default {
         "next vnode"
       );
 
-      render(prevVNode, app);
+      this.renderTwice(prevVNode, nextVNode, app);
+    },
+    patchChildren() {
+      const app = document.getElementById("home");
+
+      const functionalComponent = this.createFunctionalComponent();
+      const statefulComponent = this.createStatefulComponent();
+
+      // TODO: 缺少 fragment 和 portal 的测试用例
+      let prevVNode = null;
+      let nextVNode = null;
+      // 无 -> 无
+      prevVNode = h("div", {
+        style: { border: "1px solid black", width: "100px", height: "50px" }
+      });
+      nextVNode = h("div", {
+        style: { border: "1px solid red", width: "100px", height: "50px" }
+      });
+
+      // 无 -> 单个
+      prevVNode = h("div", {
+        style: { border: "1px solid black" }
+      });
+      nextVNode = h(
+        "div",
+        {
+          style: { border: "1px solid black" }
+        },
+        // h("p", {}, "children p") // 单个普通元素
+        // h(Portal, { target: "#float" }, h("p", {}, "children portal p")) // 单个 Portal
+        h(functionalComponent) // 单个函数式组件
+        // h(statefulComponent) // 单个有状态组件
+      );
+
+      // 无 -> 多个
+      prevVNode = h("div", {
+        style: { border: "1px solid black" }
+      });
+      nextVNode = h(
+        "div",
+        {
+          style: { border: "1px solid black" }
+        },
+        [h("p", {}, "children p"), h(statefulComponent), h(functionalComponent)]
+      );
+      this.renderTwice(prevVNode, nextVNode, app);
+
+      // 单个 -> 无
+      prevVNode = h(
+        "div",
+        {
+          style: { border: "1px solid black" }
+        },
+        h("p", {}, "children p")
+      );
+      nextVNode = h("div", {
+        style: { border: "1px solid black" }
+      });
+
+      // 单个 -> 单个
+      prevVNode = h(
+        "div",
+        {
+          style: { border: "1px solid black" }
+        },
+        h("p", {}, "children p")
+      );
+      nextVNode = h(
+        "div",
+        {
+          style: { border: "1px solid black" }
+        },
+        h("span", {}, "children span")
+      );
+
+      // 单个 -> 多个
+      prevVNode = h(
+        "div",
+        {
+          style: { border: "1px solid black" }
+        },
+        h("p", {}, "children p")
+      );
+      nextVNode = h(
+        "div",
+        {
+          style: { border: "1px solid black" }
+        },
+        [
+          h("span", {}, "children span"),
+          h("p", {}, "children p"),
+          h("h1", {}, "children h1")
+        ]
+      );
+
+      // 多个 -> 无
+      prevVNode = h(
+        "div",
+        {
+          style: { border: "1px solid black" }
+        },
+        [
+          h("span", {}, "children span"),
+          h("p", {}, "children p"),
+          h("h1", {}, "children h1")
+        ]
+      );
+      nextVNode = h("div", {
+        style: { border: "1px solid black" }
+      });
+
+      // 多个 -> 单个
+
+      // 多个 -> 多个
+    },
+    // utils
+    renderTwice(prevVNode, nextVNode, container) {
+      render(prevVNode, container);
       setTimeout(() => {
-        render(nextVNode, app);
+        render(nextVNode, container);
       }, 2000);
     },
-    patchChildren() {}
+    // 组件的话，原始数据就是组件类/函数
+    createStatefulComponent() {
+      return class MyComponent extends Component {
+        render() {
+          return h(
+            "div",
+            {
+              style: {
+                width: "100px",
+                height: "100px"
+              }
+            },
+            [
+              h(
+                "span",
+                { style: { backgroundColor: "blue", color: "white" } },
+                "statefulComponent/div/span"
+              )
+            ]
+          );
+        }
+      };
+    },
+    createFunctionalComponent() {
+      return () => {
+        return h(
+          "div",
+          { style: { backgroundColor: "green", color: "white" } },
+          [h("p", {}, "functionalComponent/div/p"), h("span", {}, "div/span")]
+        );
+      };
+    }
   }
 };
 </script>
