@@ -201,7 +201,6 @@ export default {
         },
         [h("p", {}, "children p"), h(statefulComponent), h(functionalComponent)]
       );
-      this.renderTwice(prevVNode, nextVNode, app);
 
       // 单个 -> 无
       prevVNode = h(
@@ -221,15 +220,18 @@ export default {
         {
           style: { border: "1px solid black" }
         },
-        h("p", {}, "children p")
+        // h("p", {}, "children p")
+        "旧文本"
       );
       nextVNode = h(
         "div",
         {
           style: { border: "1px solid black" }
         },
-        h("span", {}, "children span")
+        // h("span", {}, "children span")
+        "新文本miloscardio"
       );
+      this.renderTwice(prevVNode, nextVNode, app);
 
       // 单个 -> 多个
       prevVNode = h(
@@ -273,6 +275,7 @@ export default {
     },
     // utils
     renderTwice(prevVNode, nextVNode, container) {
+      console.log(prevVNode, nextVNode);
       render(prevVNode, container);
       setTimeout(() => {
         render(nextVNode, container);

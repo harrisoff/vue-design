@@ -17,7 +17,7 @@ const VNodeFlags = {
   COMPONENT_FUNCTIONAL: 1 << 5,
 
   // 纯文本
-  TEXT: 1 << 6,
+  TEXT: 1 << 6, // 64
   // fragment
   FRAGMENT: 1 << 7,
   // portal

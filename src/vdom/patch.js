@@ -1,6 +1,6 @@
 import { VNodeFlags, ChildrenFlags } from "./vnode-types";
 const {
-  // TEXT,
+  TEXT,
   FRAGMENT,
   PORTAL,
   ELEMENT,
@@ -34,7 +34,11 @@ export function patch(prevVNode, nextVNode, container) {
   } else if (nextFlags & FRAGMENT) {
     patchFragment(prevVNode, nextVNode, container);
   } else if (nextFlags & PORTAL) {
-    patchPortal(prevVNode, nextVNode, container);
+    patchPortal(prevVNode, nextVNode);
+  } else if (nextFlags & TEXT) {
+    // **并不需要传递 container 参数**
+    // 原因见 patchText()
+    patchText(prevVNode, nextVNode, container);
   }
 }
 
@@ -98,6 +102,26 @@ function patchElement(prevVNode, nextVNode, container, isSVG) {
   }
 }
 
+function patchText(prevVNode, nextVNode, container) {
+  // **文本节点 !== 文本**
+  // **文本节点 !== 文本**
+  // **文本节点 !== 文本**
+  // 前者是节点，文本是其 nodeValue 属性
+  // 比如，对于 <p>asd</p>，其中的 asd **不是文本**，而**是文本节点**
+  // 虽然看上去只有一个 DOM 节点 p，实际上还有 p 内部的文本节点
+  // 三者的关系是这样的：
+  // container: { textNode: { nodeValue: '文本' } }
+  // patchText() 替换的不是节点，而只是节点内部的文本
+  const oldText = prevVNode.chlidren;
+  const newText = nextVNode.children;
+  if (oldText !== newText) {
+    // console.log(container)
+    const el = prevVNode.el; // textNode
+    nextVNode.el = el;
+    el.nodeValue = newText; // textNode 的文本
+  }
+}
+
 function patchFragment() {}
 
 function patchPortal() {}
@@ -123,9 +147,11 @@ function patchChildren(prevVNode, nextVNode, container) {
     case NO_CHILDREN:
       switch (nextChildrenFlags) {
         case NO_CHILDREN:
+          console.log("0 -> 0");
           // 1. 无 => 无
           break;
         case SINGLE_VNODE:
+          console.log("0 -> 1");
           // 2. 无 => 单个
           // 渲染新的
           mount(nextChildren, container);
@@ -134,6 +160,7 @@ function patchChildren(prevVNode, nextVNode, container) {
         // 因为 MULTIPLE_VNODES(12) 是一个派生类型
         // 值来自 KEYED_VNODES(4)|NONE_KEYED_VNODES(8)，不是相等的关系
         default:
+          console.log("0 -> 2");
           // 3. 无 => 多个
           // 挨个渲染新的
           nextChildren.forEach(child => {
@@ -145,23 +172,24 @@ function patchChildren(prevVNode, nextVNode, container) {
     case SINGLE_VNODE:
       switch (nextChildrenFlags) {
         case NO_CHILDREN:
+          console.log("1 -> 0");
           // 4. 单个 => 无
           // 移除
           // remove() 会移除 prevChildren.el
-          // 那么需要考虑一下 fragment 的情况
-          // I. **单个** fragment，即当前的 case 时
+          // 那么需要考虑一下多个 fragment 的情况，见后面 多个 => 无 的 case
+          // **单个** fragment 时
           // 没有影响，因为 prevChildren.el 确实引用了这个 DOM 节点
           // 可以参考 ./mount.js 的 mountFragment() 实现
-          // II. 但是**多个** fragment 就需要额外操作了
-          // 见后面 多个 => 无 的 case
           remove(prevChildren, container);
           break;
         case SINGLE_VNODE:
+          console.log("1 -> 1");
           // 5. 单个 => 单个
           // 就是比较两个 vnode，递归执行 patch()
           patch(prevChildren, nextChildren, container);
           break;
         default:
+          console.log("1 -> 2");
           // 6. 单个 => 多个
           // 直接删掉旧的，然后渲染新的
           remove(prevChildren, container);
@@ -174,6 +202,7 @@ function patchChildren(prevVNode, nextVNode, container) {
     case MULTIPLE_VNODES:
       switch (nextChildrenFlags) {
         case NO_CHILDREN:
+          console.log("2 -> 0");
           // 7. 多个 => 无
           // 全部删除
           // TODO: 当 prevChildren 是 fragment 时
@@ -183,7 +212,9 @@ function patchChildren(prevVNode, nextVNode, container) {
           }
           break;
         case SINGLE_VNODE:
-          // TODO: 8. 多个 => 单个
+          console.log("2 -> 1");
+          // 8. 多个 => 单个
+          // TODO: 当 prevChildren 是 fragment 时
           // 全部删除，再添加
           for (let index = 0; index < prevChildren.length; index += 1) {
             remove(prevChildren[index], container);
@@ -193,6 +224,7 @@ function patchChildren(prevVNode, nextVNode, container) {
           break;
         // 跟上面一样，不能写为 case MULTIPLE_VNODES
         default:
+          console.log("2 -> 2");
           // TODO: 9. 多个 => 多个
           // FIXME: 暂且写为全部删除，再挨个添加
           /**
