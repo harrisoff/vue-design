@@ -1,5 +1,8 @@
-import { createTextVNode } from "./vnode";
-import { VNodeFlags, ChildrenFlags } from "./vnode-types";
+import { patchData } from "../utils";
+import { mountComponent } from "./component";
+
+import { createTextVNode } from "../vnode";
+import { VNodeFlags, ChildrenFlags } from "../vnode-types";
 const {
   TEXT,
   FRAGMENT,
@@ -11,8 +14,6 @@ const {
   ELEMENT_SVG
 } = VNodeFlags;
 const { NO_CHILDREN, SINGLE_VNODE, MULTIPLE_VNODES } = ChildrenFlags;
-
-import { patchData } from "./utils";
 
 // 挂载
 // I. 使用 vnode 提供的数据创建真实的 DOM 元素
@@ -159,72 +160,4 @@ function mountPortal(vnode, container) {
   const placeholder = createTextVNode("");
   mountText(placeholder, container, false);
   vnode.el = placeholder.el;
-}
-
-// 组件
-function mountComponent(vnode, container, isSVG) {
-  // 两种组件其实都是执行函数 vnode 然后 mount，没有多余的步骤
-  // 至于生命周期，那是组件实现的逻辑了，跟这里关系不大
-  if (vnode.flags & COMPONENT_FUNCTIONAL) {
-    // I. 函数式组件，就是一个返回 vnode 的函数
-    mountFunctionalComponent(vnode, container, isSVG);
-  } else {
-    // II. 有状态组件是一个类，但是通过实例方法也返回一个 vnode
-    mountStatefulComponent(vnode, container, isSVG);
-  }
-  // 即两种组件的内部都调用了 h() 函数
-  // p.s. vnode.tag 保存了组件的引用
-}
-
-// 有状态组件
-function mountStatefulComponent(vnode, container, isSVG) {
-  // I. 创建组件实例
-  // tag 是类，instance 实例，也就是组件内的 this
-  const instance = new vnode.tag();
-
-  // II. 渲染 vnode
-  // 执行实例方法 render()，获取组件要渲染的 vnode
-  // 虽然叫 render()，但是跟上面的 render() 完全不是一回事
-  // 反而相当于 h()，因为本质上就是调用了 h()
-  // 上面已经有一个 vnode 了，是组件所在的对象
-  // 组件的 render() 返回了另一个真正用来渲染的 $vnode
-  const $vnode = instance.render();
-
-  // III. 挂载
-  // 上面的 $vnode 可能是 DOM 标签，也可能仍然是组件
-  // 这里就不用管了，直接递归就完了
-  // 无论如何，最终将会生成 $vnode 对应的实际 DOM 元素
-  mount($vnode, container, isSVG);
-
-  // IV. 引用 el
-  // 本着 **一个 el 需要被创建它的 vnode 引用** 的原则
-  const $el = $vnode.el;
-  // 虽然 $el 不是由 vnode 直接生成的
-  // 而是 (new vnode.tag()).render() 生成的
-  // 但是最终只生成了这么一个 $el
-  // 所以就引用它了
-  vnode.el = $el;
-
-  // V. 把 $vnode 和 $el 也添加到组件实例上
-  // 也就是组件的 this.$vnode 和 this.$el 了
-  instance.$vnode = $vnode;
-  instance.$el = $el;
-
-  // 打印一下看看 🤪
-  console.log(vnode);
-  console.log($vnode);
-  console.log(instance);
-}
-
-// 函数式组件
-function mountFunctionalComponent(vnode, container, isSVG) {
-  // 获取返回值，即 vnode
-  const $vnode = vnode.tag();
-  // 挂载
-  mount($vnode, container, isSVG);
-  // 引用
-  vnode.el = $vnode.el;
-
-  console.log(vnode);
-  console.log($vnode);
 }

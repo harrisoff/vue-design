@@ -42,7 +42,9 @@ export default {
     // this.patchEvent();
     // this.patchChildren();
     // this.patchFragment();
-    this.patchPortal();
+    // this.patchPortal();
+    // this.patchStatefulComponent();
+    this.mountChildComponent();
   },
   beforeUpdate() {},
   methods: {
@@ -116,6 +118,23 @@ export default {
       const functionalComponent = this.createFunctionalComponent();
       const functionalComponentVNode = h(functionalComponent);
       render(functionalComponentVNode, document.getElementById("home"));
+    },
+    mountChildComponent() {
+      class Child extends Component {
+        render() {
+          return h("div", { style: { color: "blue" } }, this.$props.text);
+        }
+      }
+      class Parent extends Component {
+        render() {
+          return h(Child, {
+            props: {
+              text: "child text from parent"
+            }
+          });
+        }
+      }
+      render(h(Parent), document.getElementById("home"));
     },
     // ===== patch =====
     patchReplace() {
@@ -305,6 +324,11 @@ export default {
       );
       this.renderTwice(prevVNode, nextVNode, app);
     },
+    patchStatefulComponent() {
+      const AutoUpdatedComponent = this.createAutoUpdatedComponent();
+      const componentVNode = h(AutoUpdatedComponent);
+      render(componentVNode, document.getElementById("home"));
+    },
     // utils
     renderTwice(prevVNode, nextVNode, container) {
       console.log(prevVNode, nextVNode);
@@ -343,6 +367,24 @@ export default {
           { style: { backgroundColor: "green", color: "white" } },
           [h("p", {}, "functionalComponent/div/p"), h("span", {}, "div/span")]
         );
+      };
+    },
+    createAutoUpdatedComponent() {
+      return class AutoUpdatedComponent extends Component {
+        state = {
+          text: "init text"
+        };
+
+        mounted() {
+          setTimeout(() => {
+            this.state.text = "after text";
+            this._render();
+          }, 2000);
+        }
+
+        render() {
+          return h("div", null, this.state.text);
+        }
       };
     }
   }
