@@ -1,4 +1,12 @@
-// VNode
+// P.S. 位运算的效率更高
+
+// --- 忘了下面写的是啥几把了 ---
+// 派生类型不能在 switch/case 中写成 case MULTIPLE_VNODES
+// 因为 MULTIPLE_VNODES(12) 是一个派生类型
+// 值来自 KEYED_VNODES(4)|NONE_KEYED_VNODES(8)，不是相等的关系
+// ------
+
+// ===== VNode =====
 
 // 基本类型
 const VNodeFlags = {
@@ -32,15 +40,15 @@ VNodeFlags.COMPONENT_STATEFUL =
 VNodeFlags.COMPONENT =
   VNodeFlags.COMPONENT_STATEFUL | VNodeFlags.COMPONENT_FUNCTIONAL;
 
-// VNode.children
+// ===== VNode.children =====
 
 // 基本类型
 const ChildrenFlags = {
-  UNKNOWN_CHILDREN: 0,
+  UNKNOWN_CHILDREN: 0, // 暂时没用到
   NO_CHILDREN: 1,
   SINGLE_VNODE: 1 << 1, // 2
   KEYED_VNODES: 1 << 2, // 4
-  NONE_KEYED_VNODES: 1 << 3 // 8
+  NONE_KEYED_VNODES: 1 << 3 // 8，暂时也没用到
 };
 // 派生类型
 ChildrenFlags.MULTIPLE_VNODES =

@@ -26,14 +26,10 @@ export function formatElementClass(rawClass) {
   return classString;
 }
 
-// 虽然叫 patchData，实际上
-// I. mount() 和 patch() 都会用到
-// II.只是比较 vnodeData 里其中一项而已
-// 对于 patch() 的过程
-// TODO: 好像不对
-// I. 遍历新 vnodeData 时，prevValue 可能是空的，nextValue 一定有值
-// II. 遍历旧 vnodeData 时，prevValue 可能有值，nextValue 一定为空
+// mount() 和 patch() 里都会用到这个函数
+// 比较了 style/class/onX/attribute/prop 五类
 export function patchData(el, key, prevValue, nextValue, isSVG) {
+  // mount 时 prevValue 为 null，不过 for in 不会报错
   switch (key) {
     case "style":
       // 对于 patch() 的过程，跟 patchElement() 类似

@@ -1,6 +1,8 @@
 <template>
   <div class="home" id="home">
     <div class="float" id="float"></div>
+    <div id="div1"></div>
+    <div id="div2"></div>
   </div>
 </template>
 
@@ -38,11 +40,13 @@ export default {
 
     // this.patchReplace();
     // this.patchEvent();
-    this.patchChildren();
+    // this.patchChildren();
+    // this.patchFragment();
+    this.patchPortal();
   },
   beforeUpdate() {},
   methods: {
-    // mount
+    // ===== mount =====
     mountHTML() {
       // I. 原始数据
       const tag = "div";
@@ -67,6 +71,7 @@ export default {
       ];
       // II. 格式化为 vnode
       const vnode = h(tag, data, children);
+      console.log(vnode);
       // III. render
       render(vnode, document.getElementById("home"));
     },
@@ -112,7 +117,7 @@ export default {
       const functionalComponentVNode = h(functionalComponent);
       render(functionalComponentVNode, document.getElementById("home"));
     },
-    // patch
+    // ===== patch =====
     patchReplace() {
       const app = document.getElementById("home");
 
@@ -273,6 +278,33 @@ export default {
 
       // 多个 -> 多个
     },
+    patchFragment() {
+      const app = document.getElementById("home");
+      const prevVNode = h(Fragment, null, [
+        h("p", { style: { color: "red" } }, "previous p1"),
+        h("p", { style: { color: "blue" } }, "previous p2")
+      ]);
+      const nextVNode = h(Fragment, null, [
+        h("p", { style: { color: "green" } }, "later p1"),
+        h("p", { style: { color: "pink" } }, "later p2")
+      ]);
+      console.log(prevVNode, nextVNode);
+      this.renderTwice(prevVNode, nextVNode, app);
+    },
+    patchPortal() {
+      const app = document.getElementById("home");
+      const prevVNode = h(
+        Portal,
+        { target: "#div1" },
+        h("p", { style: { color: "red" } }, "previous p1")
+      );
+      const nextVNode = h(
+        Portal,
+        { target: "#div2" },
+        h("p", { style: { color: "green" } }, "later p1")
+      );
+      this.renderTwice(prevVNode, nextVNode, app);
+    },
     // utils
     renderTwice(prevVNode, nextVNode, container) {
       console.log(prevVNode, nextVNode);
@@ -330,5 +362,15 @@ export default {
   width: 50px;
   height: 50px;
   background-color: silver;
+}
+#div1 {
+  width: 400px;
+  height: 200px;
+  border: 1px solid green;
+}
+#div2 {
+  width: 400px;
+  height: 200px;
+  border: 1px solid red;
 }
 </style>

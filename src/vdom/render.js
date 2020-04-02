@@ -5,13 +5,11 @@ import { remove } from "./utils";
 // 渲染函数入口
 function render(vnode, container) {
   const prevVNode = container.vnode;
-  if (!prevVNode) {
-    if (vnode) {
-      // I. 没有旧的，只有新的
-      mount(vnode, container);
-      // patch 的时候要用
-      container.vnode = vnode;
-    }
+  if (!prevVNode && vnode) {
+    // I. 没有旧的，只有新的
+    mount(vnode, container);
+    // patch 的时候要用
+    container.vnode = vnode;
   } else {
     if (vnode) {
       // II. 有旧有新

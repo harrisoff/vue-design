@@ -63,7 +63,8 @@ function mountElement(vnode, container, isSVG) {
   for (const key in data) {
     const val = data[key];
     // 根据 vnodeData 的 key 采取不同的处理
-    // 虽然叫 patchX()，实际只是封装了 switch 语句，mount() 和 patch() 都会用到
+    // 虽然叫 patchX()，实际只是封装了 switch 语句
+    // 只比较 vnodeData 里其中一项
     patchData(el, key, null, val, isSVG);
   }
 
@@ -71,8 +72,10 @@ function mountElement(vnode, container, isSVG) {
   if (childrenFlags & NO_CHILDREN) {
     // 无 children
     // 文本也是 NO_CHILDREN
-    // 不过有单独的挂载函数 mountText，所以这里不需要考虑
+    // 不过有跟 mountElement 同级的 mountText 专门用来挂载文本
+    // 所以这里不需要考虑
   } else {
+    // 无论单个还是多个，递归执行 mount()
     if (childrenFlags & SINGLE_VNODE) {
       // 单个
       mount(children, el, isSVG);
@@ -105,7 +108,8 @@ function mountFragment(vnode, container, isSVG) {
   // 组件只能有一个根节点，是其他所有子节点的容器
   // 而 fragment 不要求有一个根节点，多个节点时是并列的，没有容器
   // 没有容器，也就是 vnode 没有直接生成对应的 DOM 元素 el
-  // 但是为了保持层级关系，只能直接引用 children 渲染出来的 el 了
+  // 但是为了坚持 vnode 需要引用其 el 的原则
+  // 只能折衷一下，引用 children 渲染出来的 el 了
   const { children, childrenFlags } = vnode;
   switch (childrenFlags) {
     case SINGLE_VNODE:
@@ -134,7 +138,8 @@ function mountFragment(vnode, container, isSVG) {
 
 // portal
 function mountPortal(vnode, container) {
-  // Portal 有 tag，但是跟 Fragment 一样只需要挂载 children
+  // Portal 有 tag，但这个 tag 是 target
+  // 跟 Fragment 一样只渲染和挂载 children
   const { tag, children, childrenFlags } = vnode;
   // 在 h() 里已经把 vnode.data.target 另存为 vnode.tag
   const target = typeof tag === "string" ? document.querySelector(tag) : tag;
@@ -148,8 +153,9 @@ function mountPortal(vnode, container) {
   }
 
   // 虽然实际元素不在这个位置，但行为仍然与此处的元素一致
-  // 比如事件捕获/冒泡等机制
-  // 所以需要添加一个占位元素，vnode.el 也指向该占位元素
+  // 需要一个元素在这里承接事件
+  // 所以添加一个占位的空文本节点，vnode.el 也指向该占位元素
+  // 真正的 el 在上面 mount 的时候挂在了 target 的名下
   const placeholder = createTextVNode("");
   mountText(placeholder, container, false);
   vnode.el = placeholder.el;
@@ -157,6 +163,8 @@ function mountPortal(vnode, container) {
 
 // 组件
 function mountComponent(vnode, container, isSVG) {
+  // 两种组件其实都是执行函数 vnode 然后 mount，没有多余的步骤
+  // 至于生命周期，那是组件实现的逻辑了，跟这里关系不大
   if (vnode.flags & COMPONENT_FUNCTIONAL) {
     // I. 函数式组件，就是一个返回 vnode 的函数
     mountFunctionalComponent(vnode, container, isSVG);
@@ -171,29 +179,28 @@ function mountComponent(vnode, container, isSVG) {
 // 有状态组件
 function mountStatefulComponent(vnode, container, isSVG) {
   // I. 创建组件实例
-  // tag 是一个类的引用，相当于 new MyComponent()
-  // 而 instance 就是组件里的 this 了
+  // tag 是类，instance 实例，也就是组件内的 this
   const instance = new vnode.tag();
 
   // II. 渲染 vnode
   // 执行实例方法 render()，获取组件要渲染的 vnode
   // 虽然叫 render()，但是跟上面的 render() 完全不是一回事
-  // 反而相当于 h()，因为其返回值是 h() 生成的 vnode
-  // 组件已经是一个 vnode 了
-  // 组件的 render() 返回了另一个 $vnode
+  // 反而相当于 h()，因为本质上就是调用了 h()
+  // 上面已经有一个 vnode 了，是组件所在的对象
+  // 组件的 render() 返回了另一个真正用来渲染的 $vnode
   const $vnode = instance.render();
 
   // III. 挂载
   // 上面的 $vnode 可能是 DOM 标签，也可能仍然是组件
-  // 无论如何，最终将会生成 $vnode 对应的实际 DOM 元素，并且
-  // i. 添加为 $vnode.el
-  // ii. 添加为 container 的子元素
+  // 这里就不用管了，直接递归就完了
+  // 无论如何，最终将会生成 $vnode 对应的实际 DOM 元素
   mount($vnode, container, isSVG);
 
   // IV. 引用 el
   // 本着 **一个 el 需要被创建它的 vnode 引用** 的原则
   const $el = $vnode.el;
   // 虽然 $el 不是由 vnode 直接生成的
+  // 而是 (new vnode.tag()).render() 生成的
   // 但是最终只生成了这么一个 $el
   // 所以就引用它了
   vnode.el = $el;
