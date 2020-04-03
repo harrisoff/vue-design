@@ -15,7 +15,6 @@ import { patchData, remove } from "./utils";
 import { mount } from "./mount";
 
 // 更新
-// 不要忘了 patch() 的调用来自于 render()
 // nextVNode 是手动传递进来的
 // prevVNode 是从 container 取的 container.vnode
 export function patch(prevVNode, nextVNode, container) {
@@ -51,6 +50,11 @@ export function patch(prevVNode, nextVNode, container) {
 function replaceVNode(prevVNode, nextVNode, container) {
   // 删除旧的
   remove(prevVNode, container);
+  // 如果是 prevVNode 是组件，那么需要触发一下 unmount() 钩子
+  if (prevVNode.flags & VNodeFlags.COMPONENT_STATEFUL_NORMAL) {
+    const instance = prevVNode.children;
+    instance.unmounted && instance.unmounted();
+  }
   // 渲染新的
   mount(nextVNode, container);
 }
@@ -187,7 +191,41 @@ function patchPortal(prevVNode, nextVNode) {
   }
 }
 
-function patchComponent() {}
+function patchComponent(prevVNode, nextVNode, container) {
+  // patch() 里已经判断过了，所以 prev/next 都是组件类型
+
+  // 不过这两个 vnode 有两种可能性，分别对应代码执行到这里的两种场景
+  // 1. 有可能是组件 vnode，当多次 render() 不同组件，在组件之间 patch 时
+  // 2. 可能是组件返回的 realVNode，当单个组件更新内部数据时，由 instance._render() 触发的
+  // p.s. 内部数据也包括嵌套的子组件，见 mount/component.js 的 _render()
+
+  // 1. 外部 patch
+  // 新旧 vnode 不是同一个组件，直接替换
+  if (nextVNode.tag !== prevVNode.tag) {
+    replaceVNode(prevVNode, nextVNode, container);
+  }
+  // 2. 同组件内部 patch
+  else {
+    // 2.1. 有状态组件
+    if (nextVNode.flags & VNodeFlags.COMPONENT_STATEFUL_NORMAL) {
+      // 执行到这里，只可能是由 instance._render() 触发的
+      // 这时 prevVNode 和 nextVNode 都是 realVNode，而不是组件的 vnode
+      // 不过没啥关系，因为用不到
+
+      // instance 直接用之前的
+      const instance = prevVNode.children;
+      nextVNode.children = instance;
+      // 更新 props
+      instance.props = nextVNode && nextVNode.data && nextVNode.data.chlidProps;
+      // 重新渲染
+      instance._render();
+    }
+    // 2.2. 函数式组件
+    else {
+      //
+    }
+  }
+}
 
 function patchStatefulComponent() {
   // 有状态组件的更新有两种情况

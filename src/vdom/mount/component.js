@@ -14,6 +14,9 @@ const {
 } = VNodeFlags;
 
 // 组件
+// 像前面说的，组件的 vnode 不是用来渲染 DOM 的
+// 其内部的另一个 realVNode 才是
+// 到这一步时，参数 vnode 仍然是组件的 vnode
 export function mountComponent(vnode, container, isSVG) {
   // 两种组件其实都是执行函数 vnode 然后 mount，没有多余的步骤
   // 至于生命周期，那是组件实现的逻辑了，跟这里关系不大
@@ -31,12 +34,20 @@ export function mountComponent(vnode, container, isSVG) {
 // 有状态组件
 function mountStatefulComponent(vnode, container, isSVG) {
   // I. 创建组件实例
-  // tag 是类，instance 实例，也就是组件内的 this
-  // 组件内定义的任何函数，都可以在这里通过实例方法调用
-  // 生命周期的钩子函数就是这样被执行的
-  const instance = new vnode.tag();
+  // 在 h() 的时候把类保存到了 tag 里
+  const Constructor = vnode.tag;
+  // 组件外叫 instance，组件内叫 this
+  // 内外可以通过实例方法和属性传值，这样就实现了：
+  // 1. 在外部执行内部定义的生命周期钩子函数
+  // 2. 在内部获取外部传入的 props 等属性
+  const instance = new Constructor();
+  // vnode 需要引用一下 instance，以便能够通过 vnode 访问到
+  // 普通 html 元素的 vnode，其 children 是用来保存子元素的
+  // 但是组件的子元素是通过插槽提供的，而且单独保存为 slot 字段
+  // 所以 children 属性就可以拿出来保存 instance 了
+  vnode.children = instance;
   // babel 里没装可选链
-  instance.$props = vnode && vnode.data && vnode.data.props;
+  instance.props = vnode && vnode.data && vnode.data.chlidProps;
 
   // 封装一下，初次渲染和后续更新的时候可以直接复用
   instance._render = () => {
@@ -58,19 +69,19 @@ function mountStatefulComponent(vnode, container, isSVG) {
 
       // IV. 引用 el
       // 本着 **一个 el 需要被创建它的 vnode 引用** 的原则
-      const el = realVNode.el;
-      // 虽然 $el 不是由 vnode 直接生成的
+      // 虽然 el 不是由 vnode 直接生成的
       // 而是 (new vnode.tag()).render() 生成的
-      // 但是最终只生成了这么一个 $el，所以就引用它了
+      // 但是最终只生成了这么一个 el，所以就引用它了
+      const el = realVNode.el;
       vnode.el = el;
-      // 为什么不是 realVNode.el = $el 呢
-      // 虽然实际生成 $el 的是 realVNode 而不是 vnode
-      // 但是，我们关注的不是**代码层面**上，el 是由哪个 vnode 生成的
-      // 而是**组件层面**上，el 是由哪个 vnode 生成的
-      // 所以就抛开实现细节，直接认为 el 是由 vnode 生成的
+      // 为什么不是 realVNode.el = el 呢
+      // 虽然实际生成 el 的是 realVNode 而不是 vnode
+      // 但是，我们关注的不是**代码层面**上，el 是由谁生成的
+      // 而是**组件层面**上，el 是由谁生成的
+      // 所以就抛开实现细节，直接认为 el 是由组件这个整体生成的
       // 并且，是 vnode 的嵌套保持了整个 vnode 树的结构，而不是 vnode 返回的另一个 realVNode
 
-      // V. 把 realVNode 和 $el 也添加到组件实例上
+      // V. 把 realVNode 和 el 也添加到组件实例上
       // 也就是组件的 this.$vnode 和 this.$el 了
       // 这是组件独有的了，其他的 vnode 没有 insatnce
       instance.$vnode = realVNode;
@@ -84,27 +95,22 @@ function mountStatefulComponent(vnode, container, isSVG) {
     else {
       instance.beforeUpdate && instance.beforeUpdate();
 
-      // 获取 vnode
-      // TODO: instance.$vnode 不是引用类型🐴?
-      const prevVNode = instance.$vnode;
-      const $vnode = instance.render();
-      const nextVNode = $vnode;
-      // patch
-      patch(prevVNode, nextVNode, container);
+      const prevRealVNode = instance.$vnode;
+      const nextRealVNode = instance.render();
+      // TODO: 这里传进来的是 realVNode，但是 render() 里调用 patch() 的时候传的可是组件的 vnode 啊！
+      // 注意了，_render() 作为一个私有方法，只有一种调用的场景
+      // 那就是在组件内部被调用，当组件内部数据变化时
+      // 所以这里调用 patch() 之后，只是 patch 了数据
+      patch(prevRealVNode, nextRealVNode, container);
 
-      // 更新 instance 上的值
-      const $el = $vnode.$el;
-      vnode.el = $el;
+      // 更新 vnode 和 instance 上的值
+      const el = nextRealVNode.$el;
+      vnode.el = el;
       instance.$vnode = vnode;
-      instance.$el = $el;
+      instance.$el = el;
 
       instance.updated && instance.updated();
     }
-
-    // 打印一下看看 🤪
-    // console.log(vnode);
-    // console.log($vnode);
-    // console.log(instance);
   };
 
   instance._render();

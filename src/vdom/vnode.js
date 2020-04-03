@@ -22,7 +22,7 @@ export const Portal = Symbol();
 // | 对于普通 HTML 元素来说，h() 生成的 VNode 确实就是对真实 DOM 的描述
 // | 但是对于组件来说，h() 生成的 VNode 并不是对 DOM 的直接描述
 // | 虽然仍然是把 h() 的返回值传给 render()，但是内部逻辑不同
-// | 组件函数返回的另一个 VNode 才是真正用来描述 DOM 的，也是真正用来渲染的
+// | 组件 render() 返回的另一个 VNode 才是真正用来描述和渲染 DOM 的
 // | 这时传入的 data 参数是传递给组件的数据，而不是用来直接生成 VNode 的数据
 // +===================================================================
 export function h(tag, data = null, children = null) {
@@ -42,6 +42,12 @@ export function h(tag, data = null, children = null) {
     tag = data && data.target; // 需要把挂载目标保存为 tag
   }
   // IV. 组件
+  // 对一个返回原生 html 元素的类组件来说，一共要执行两次 h()
+  // 一个是组件的 render() 方法中的
+  // 用来格式化真正用来渲染 DOM 的 realVNode
+  // 一个是调用渲染函数 render() 时用来格式化类组件的
+  // 这样 render() 函数才能知道 vnode 的类型是组件
+  // 并执行合适的逻辑取出上面的 realVNode
   else {
     // 兼容 Vue2 的对象式组件，tag 为组件实例
     if (tag !== null && typeof tag === "object") {

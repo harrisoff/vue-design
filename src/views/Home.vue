@@ -44,7 +44,9 @@ export default {
     // this.patchFragment();
     // this.patchPortal();
     // this.patchStatefulComponent();
-    this.mountChildComponent();
+    this.patchComponent(); // 两个组件先后渲染
+    // this.patchComponentData(); // 单个组件内部数据变化
+    // this.patchComponentNest(); // 嵌套组件
   },
   beforeUpdate() {},
   methods: {
@@ -118,23 +120,6 @@ export default {
       const functionalComponent = this.createFunctionalComponent();
       const functionalComponentVNode = h(functionalComponent);
       render(functionalComponentVNode, document.getElementById("home"));
-    },
-    mountChildComponent() {
-      class Child extends Component {
-        render() {
-          return h("div", { style: { color: "blue" } }, this.$props.text);
-        }
-      }
-      class Parent extends Component {
-        render() {
-          return h(Child, {
-            props: {
-              text: "child text from parent"
-            }
-          });
-        }
-      }
-      render(h(Parent), document.getElementById("home"));
     },
     // ===== patch =====
     patchReplace() {
@@ -255,7 +240,6 @@ export default {
         // h("span", {}, "children span")
         "新文本miloscardio"
       );
-      this.renderTwice(prevVNode, nextVNode, app);
 
       // 单个 -> 多个
       prevVNode = h(
@@ -276,6 +260,8 @@ export default {
           h("h1", {}, "children h1")
         ]
       );
+      console.log(prevVNode, nextVNode);
+      this.renderTwice(prevVNode, nextVNode, app);
 
       // 多个 -> 无
       prevVNode = h(
@@ -329,9 +315,78 @@ export default {
       const componentVNode = h(AutoUpdatedComponent);
       render(componentVNode, document.getElementById("home"));
     },
+    patchComponent() {
+      const normalVNode = h("div", {}, "JUST A DIV");
+      class Component1 extends Component {
+        render() {
+          return h("div", null, "component ONE");
+        }
+      }
+      class Component2 extends Component {
+        render() {
+          return h("div", null, "component TWOOOOO");
+        }
+      }
+      this.renderTwice(
+        normalVNode,
+        // h(Component2),
+        h(Component1),
+        document.getElementById("home")
+      );
+    },
+    patchComponentData() {
+      class Parent extends Component {
+        chlidProps = {
+          text: "child text from parent"
+        };
+        data = {
+          text: "init data"
+        };
+
+        mounted() {
+          setTimeout(() => {
+            this.data.text = "AFTER DATA!!!!!!";
+            this._render();
+          }, 2000);
+        }
+
+        render() {
+          return h("div", null, this.data.text);
+        }
+      }
+      const parentVNode = h(Parent);
+      render(parentVNode, document.getElementById("home"));
+    },
+    patchComponentNest() {
+      class Child extends Component {
+        render() {
+          return h("div", { style: { color: "blue" } }, this.props.text);
+        }
+      }
+      class Parent extends Component {
+        chlidProps = {
+          text: "child text from parent"
+        };
+
+        mounted() {
+          setTimeout(() => {
+            this.chlidProps.text = "CHILD TEXT FROM PARENT";
+            this._render();
+          }, 2000);
+        }
+
+        render() {
+          return h(Child, {
+            chlidProps: this.chlidProps
+          });
+        }
+      }
+      const parentVNode = h(Parent);
+      render(parentVNode, document.getElementById("home"));
+    },
     // utils
     renderTwice(prevVNode, nextVNode, container) {
-      console.log(prevVNode, nextVNode);
+      // console.log(prevVNode, nextVNode);
       render(prevVNode, container);
       setTimeout(() => {
         render(nextVNode, container);
