@@ -13,9 +13,9 @@
  * TIPS: 代码注意大小写
  */
 
-import { h, Fragment, Portal } from "../vdom/vnode";
-import { render } from "../vdom/render";
-import { Component } from "../vdom/Component";
+import { h, Fragment, Portal } from "../../vdom/vnode";
+import { render } from "../../vdom/render";
+import { Component } from "../../vdom/Component";
 
 export default {
   name: "home",
