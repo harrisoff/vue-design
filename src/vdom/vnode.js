@@ -111,6 +111,7 @@ export function h(tag, data = null, children = null) {
     tag,
     children,
     // 新增属性
+    key: data && data.key ? data.key : null,
     _isVNode: true,
     flags,
     childrenFlags,

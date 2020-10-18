@@ -20,11 +20,13 @@ import { mount } from "./mount";
 export function patch(prevVNode, nextVNode, container) {
   const prevFlags = prevVNode.flags;
   const nextFlags = nextVNode.flags;
+  console.log(prevVNode, nextVNode);
 
   // TODO: patch() 时的 isSVG 怎么处理？
   const isSVG = nextFlags & ELEMENT_SVG;
 
   if (prevFlags !== nextFlags) {
+    console.log("patch-replace");
     // 新旧节点类型不同，直接替换
     replaceVNode(prevVNode, nextVNode, container);
   }
@@ -33,14 +35,17 @@ export function patch(prevVNode, nextVNode, container) {
   // 1. nextVNode 继承 prevVNode 的 el
   // 2. 比较两者的 data/children
   else if (nextFlags & ELEMENT) {
+    console.log("patch-element");
     patchElement(prevVNode, nextVNode, container, isSVG);
   } else if (nextFlags & COMPONENT) {
+    console.log("patch-component");
     patchComponent(prevVNode, nextVNode, container);
   } else if (nextFlags & FRAGMENT) {
     patchFragment(prevVNode, nextVNode, container);
   } else if (nextFlags & PORTAL) {
     patchPortal(prevVNode, nextVNode);
   } else if (nextFlags & TEXT) {
+    console.log("patch-text");
     // **并不需要传递 container 参数**
     // 原因见 patchText()
     patchText(prevVNode, nextVNode, container);
@@ -192,48 +197,44 @@ function patchPortal(prevVNode, nextVNode) {
 }
 
 function patchComponent(prevVNode, nextVNode, container) {
+  console.log("patchComponent", prevVNode, nextVNode);
   // patch() 里已经判断过了，所以 prev/next 都是组件类型
 
   // 不过这两个 vnode 有两种可能性，分别对应代码执行到这里的两种场景
   // 1. 有可能是组件 vnode，当多次 render() 不同组件，在组件之间 patch 时
-  // 2. 可能是组件返回的 realVNode，当单个组件更新内部数据时，由 instance._render() 触发的
-  // p.s. 内部数据也包括嵌套的子组件，见 mount/component.js 的 _render()
+  // 2. 可能是组件返回的 realVNode，当单个组件更新内部数据时，由 instance._update() 触发的
+  // p.s. 内部数据也包括嵌套的子组件，见 mount/component.js 的 _update()
 
   // 1. 外部 patch
   // 新旧 vnode 不是同一个组件，直接替换
   if (nextVNode.tag !== prevVNode.tag) {
+    console.log("patchComponent-replace");
     replaceVNode(prevVNode, nextVNode, container);
   }
   // 2. 同组件内部 patch
+  // 这意味着很多变量都可以直接拿旧的用
   else {
     // 2.1. 有状态组件
     if (nextVNode.flags & VNodeFlags.COMPONENT_STATEFUL_NORMAL) {
-      // 执行到这里，只可能是由 instance._render() 触发的
+      // 执行到这里，只可能是由 instance._update() 触发的
       // 这时 prevVNode 和 nextVNode 都是 realVNode，而不是组件的 vnode
       // 不过没啥关系，因为用不到
 
-      // instance 直接用之前的
+      // instance 没有变化，直接取 prevVNode 上的
       const instance = prevVNode.children;
+      console.log("patchComponent-stateful", instance);
       nextVNode.children = instance;
-      // 更新 props
+      // 更新组件内部 props
       instance.props = nextVNode && nextVNode.data && nextVNode.data.chlidProps;
       // 重新渲染
-      instance._render();
+      instance._update();
     }
-    // 2.2. 函数式组件
+    // 2.2. TODO: 函数式组件 patch
     else {
-      //
+      console.log("patchComponent-functional");
     }
   }
 }
-
-function patchStatefulComponent() {
-  // 有状态组件的更新有两种情况
-  // 1. 主动更新，组件内部数据变化
-  // 2. 被动更新，组件接受的数据变化
-}
-
-function patchFunctionalComponent() {}
 
 // 判断 children 的个数，最后调用了 mount/patch/remove
 function patchChildren(prevVNode, nextVNode, container) {
@@ -330,7 +331,7 @@ function patchChildren(prevVNode, nextVNode, container) {
           mount(nextChildren, container);
           break;
         // 跟上面一样，不能写为 case MULTIPLE_VNODES
-        default:
+        default: {
           console.log("2 -> 2");
           // TODO: 9. 多个 => 多个
           // 多个 children 的 patch 才是 diff 算法
@@ -340,14 +341,27 @@ function patchChildren(prevVNode, nextVNode, container) {
            * |    牛逼闪闪的 diff 算法    |
            * +===========================+
            */
-          console.log(container);
-          for (let index = 0; index < prevChildren.length; index += 1) {
-            remove(prevChildren[index], container);
+          // 新旧长度一般不同，取较短的一个做遍历
+          const prevLen = prevChildren.length;
+          const nextLen = nextChildren.length;
+          const commonLength = prevLen > nextLen ? nextLen : prevLen;
+          for (let i = 0; i < commonLength; i++) {
+            patch(prevChildren[i], nextChildren[i], container);
           }
-          for (let index = 0; index < nextChildren.length; index += 1) {
-            mount(nextChildren[index], container);
+          // 如果新的比较多，多出来的挂载上去
+          if (nextLen > prevLen) {
+            for (let i = commonLength; i < nextLen; i++) {
+              mount(nextChildren[i], container);
+            }
+          }
+          // 如果新的比较少，少的部分删掉
+          else if (prevLen > nextLen) {
+            for (let i = commonLength; i < prevLen; i++) {
+              container.removeChild(prevChildren[i].el);
+            }
           }
           break;
+        }
       }
       break;
   }

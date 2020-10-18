@@ -11,7 +11,6 @@ export function formatElementClass(rawClass) {
       .split(",")
       .join(" ");
   } else {
-    // TODO: 判断 object 类型更完善的逻辑
     const isObject = rawClass && typeof rawClass === "object";
     if (isObject) {
       const trueClasses = Object.keys(rawClass).filter(className => {

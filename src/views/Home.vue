@@ -43,10 +43,10 @@ export default {
     // this.patchChildren();
     // this.patchFragment();
     // this.patchPortal();
-    // this.patchStatefulComponent();
-    this.patchComponent(); // 两个组件先后渲染
-    // this.patchComponentData(); // 单个组件内部数据变化
-    // this.patchComponentNest(); // 嵌套组件
+    // this.patchStatefulComponent(); // 两个组件先后渲染
+    // this.patchStatefulComponentData(); // 单个组件内部数据变化
+    // this.patchStatefulComponentNest(); // 子组件 props 变化/子组件替换
+    this.patchFunctionalComponent();
   },
   beforeUpdate() {},
   methods: {
@@ -310,12 +310,8 @@ export default {
       );
       this.renderTwice(prevVNode, nextVNode, app);
     },
+    // stateful component
     patchStatefulComponent() {
-      const AutoUpdatedComponent = this.createAutoUpdatedComponent();
-      const componentVNode = h(AutoUpdatedComponent);
-      render(componentVNode, document.getElementById("home"));
-    },
-    patchComponent() {
       const normalVNode = h("div", {}, "JUST A DIV");
       class Component1 extends Component {
         render() {
@@ -328,17 +324,14 @@ export default {
         }
       }
       this.renderTwice(
-        normalVNode,
-        // h(Component2),
+        // normalVNode,
+        h(Component2),
         h(Component1),
         document.getElementById("home")
       );
     },
-    patchComponentData() {
+    patchStatefulComponentData() {
       class Parent extends Component {
-        chlidProps = {
-          text: "child text from parent"
-        };
         data = {
           text: "init data"
         };
@@ -346,7 +339,7 @@ export default {
         mounted() {
           setTimeout(() => {
             this.data.text = "AFTER DATA!!!!!!";
-            this._render();
+            this._update();
           }, 2000);
         }
 
@@ -357,32 +350,67 @@ export default {
       const parentVNode = h(Parent);
       render(parentVNode, document.getElementById("home"));
     },
-    patchComponentNest() {
+    patchStatefulComponentNest() {
       class Child extends Component {
+        beforeMount() {}
+        mounted() {}
         render() {
           return h("div", { style: { color: "blue" } }, this.props.text);
         }
       }
+      class Child1 extends Component {
+        render() {
+          return h("div", { style: { color: "blue" } }, "CHILD1");
+        }
+      }
+      class Child2 extends Component {
+        render() {
+          return h("div", { style: { color: "blue" } }, "CHILD2");
+        }
+      }
       class Parent extends Component {
         chlidProps = {
-          text: "child text from parent"
+          text: "child text from parent",
+          childIndex: "1"
         };
-
+        beforeMount() {}
         mounted() {
           setTimeout(() => {
             this.chlidProps.text = "CHILD TEXT FROM PARENT";
-            this._render();
+            this.chlidProps.childIndex = "2";
+            this._update();
           }, 2000);
         }
 
         render() {
-          return h(Child, {
+          const childVNode = h(Child, {
             chlidProps: this.chlidProps
           });
+          const childVNode1 = h(Child1);
+          const childVNode2 = h(Child2);
+          // 子组件属性变化
+          return childVNode;
+          // 子组件替换
+          // return this.chlidProps.childIndex === "1" ? childVNode1 : childVNode2;
         }
       }
       const parentVNode = h(Parent);
       render(parentVNode, document.getElementById("home"));
+    },
+    // functional component
+    patchFunctionalComponent() {
+      const childProps = {
+        text: "text from parent"
+      };
+      const MyFunctionalComponent = ({ props }) => {
+        return h("div", {}, props.text);
+      };
+      const myFunctionalVNode = h(MyFunctionalComponent, { props: childProps });
+      setTimeout(() => {
+        childProps.text = "TEXT CHANGED!!!";
+        myFunctionalVNode.handler.update();
+      }, 2000);
+      render(myFunctionalVNode, document.getElementById("home"));
     },
     // utils
     renderTwice(prevVNode, nextVNode, container) {
@@ -433,7 +461,7 @@ export default {
         mounted() {
           setTimeout(() => {
             this.state.text = "after text";
-            this._render();
+            this._update();
           }, 2000);
         }
 

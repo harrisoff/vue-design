@@ -45,7 +45,7 @@ export function mount(vnode, container, isSVG) {
 }
 
 // html/svg
-function mountElement(vnode, container, isSVG) {
+function mountElement(vnode, container, isSVG, refNode) {
   const { tag, data, flags, children, childrenFlags } = vnode;
 
   // I. 处理 svg 标签
@@ -88,7 +88,8 @@ function mountElement(vnode, container, isSVG) {
     }
   }
 
-  container.appendChild(el);
+  // diff 时要求把元素挂载到指定位置，而不是直接作为 container 的最后一个子元素
+  refNode ? container.insertBefore(el, refNode) : container.appendChild(el);
 }
 
 // 纯文本
